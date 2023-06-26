@@ -5,7 +5,7 @@
 #include "ButtonEvent.h"
 #include "string.h"
 
-#include "delay.h"
+#include "timestamp.h"
 
 #define GET_TICK() millis()
 

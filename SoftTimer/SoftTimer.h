@@ -7,7 +7,7 @@
 
 
 #include <stdint.h>
-#include "LinkedList/LinkedList.h"
+#include "../LinkedList/LinkedList.h"
 
 typedef uint32_t(*SoftTimerGetTime_t)();
 

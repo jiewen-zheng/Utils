@@ -4,10 +4,9 @@
 
 #include "button_event.h"
 #include "simple_list.h"
-
 #include "string.h"
 
-#include "delay.h"
+#include "timestamp.h"
 
 #define GET_TICK() millis()
 
@@ -42,7 +41,7 @@ int btnIsExists(ButtonID id) {
     return -1;
 }
 
-ButtonID checkName(char *name) {
+static ButtonID checkName(char *name) {
     int size = btnMethod->size(btnList);
     for (int i = 0; i < size; i++) {
         ButtonDef_t *pItem = (ButtonDef_t *) btnMethod->get(btnList, i);
