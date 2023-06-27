@@ -3,10 +3,11 @@
 //
 
 #include "button_event.h"
-#include "simple_list.h"
-#include "string.h"
 
-#include "timestamp.h"
+#include <string.h>
+#include <stdlib.h>
+
+#include "utils_config.h"
 
 #define GET_TICK() millis()
 
@@ -23,9 +24,9 @@ ButtonDef_t Button[BUTTON_MAX_NUM];
 #endif
 
 // 创建链表
-simpleListDef(btnList);
-List_t *btnList = simpleList(btnList);
-ListMethod_t *btnMethod = simpleListMethod(btnList);
+SimpleListDef(btnList);
+List_t *btnList = SimpleList(btnList);
+ListMethod_t *btnMethod = SimpleListMethod(btnList);
 static bool list_init = false;
 
 
@@ -70,7 +71,7 @@ ButtonID ButtonCreate(const char *name, bool (*getPress)(), void (*callback)(But
     // 链表初始化
     if (!list_init) {
         list_init = true;
-        simpleListInit(btnList);
+        SimpleListInit(btnList);
     }
 
     if (name == NULL || getPress == NULL || callback == NULL) {
@@ -83,9 +84,9 @@ ButtonID ButtonCreate(const char *name, bool (*getPress)(), void (*callback)(But
 
     ButtonDef_t *button = NULL;
 #if BUTTON_EVENT_DYNAMIC_MEMORY_EN
-    button = (ButtonDef_t * ) malloc(sizeof(ButtonDef_t));
+    button = (ButtonDef_t *) malloc(sizeof(ButtonDef_t));
 
-    if(button == NULL){
+    if (button == NULL) {
         return NULL;
     }
 #else
@@ -147,11 +148,37 @@ void ButtonRemove(ButtonID id) {
 }
 
 /**
+ * 获取按键历史记录
+ * @param record 记录结构体指针
+ */
+
+/**
+ * 获取按键历史记录
+ * @param name 按键名称
+ * @return 按键记录
+ */
+bool ButtonGetRecord(const char *name, ButtonRecord_t *record) {
+    ButtonID id = checkName((char *) name);
+    if (id == NULL) {
+        return false;
+    }
+
+    ButtonDef_t *btn = (ButtonDef_t *)id;
+    record->pressed = btn->record.pressed;
+    record->clicked = btn->record.clicked;
+    record->longPressed = btn->record.longPressed;
+    record->clickCnt = btn->record.clickCnt;
+    memset(&btn->record, 0, sizeof(ButtonRecord_t));
+
+    return true;
+}
+
+/**
  * 获取与上次时间的时间差
  * @param prevTick 上次的时间戳
  * @retval 时间差
  */
-static uint32_t GetTickElaps(uint32_t prevTick) {
+static uint32_t GetTickElapse(uint32_t prevTick) {
     uint32_t actTime = GET_TICK();
 
     if (actTime >= prevTick) {
@@ -168,7 +195,7 @@ static uint32_t GetTickElaps(uint32_t prevTick) {
  * 监控事件，建议扫描周期10ms
  * @param isPress 当前按键状态
  */
-void ButtonMonitor() {
+void ButtonMonitor(void) {
     int size = btnMethod->size(btnList);
     if (size <= 0) {
         return;
@@ -181,11 +208,12 @@ void ButtonMonitor() {
             continue;
         }
 
-        bool isPress = btn->getPress();
+        bool isPress = btn->getPress(btn->name);
 
         if (isPress && btn->nowState == STATE_NO_PRESS) {
             btn->nowState = STATE_PRESS;
 
+            btn->record.pressed = true;
             btn->priv.lastPressTime = GET_TICK();
 
             btn->callback(btn, EVENT_PRESSED);
@@ -200,22 +228,22 @@ void ButtonMonitor() {
             btn->callback(btn, EVENT_PRESSING);
         }
 
-        if (isPress && GetTickElaps(btn->priv.lastPressTime) >= btn->priv.longPressTimeCfg) {
+        if (isPress && GetTickElapse(btn->priv.lastPressTime) >= btn->priv.longPressTimeCfg) {
             btn->nowState = STATE_LONG_PRESS;
 
             if (!btn->priv.isLongPressed) {
                 btn->callback(btn, EVENT_LONG_PRESSED);
                 btn->priv.lastLongPressTime = GET_TICK();
-                btn->priv.isLongPressed = true;
-            } else if (GetTickElaps(btn->priv.lastLongPressTime) >= btn->priv.longPressRepeatTimeCfg) {
+                btn->record.longPressed = btn->priv.isLongPressed = true;
+            } else if (GetTickElapse(btn->priv.lastLongPressTime) >= btn->priv.longPressRepeatTimeCfg) {
                 btn->priv.lastLongPressTime = GET_TICK();
                 btn->callback(btn, EVENT_LONG_PRESSED_REPEAT);
             }
         } else if (!isPress) {
             btn->nowState = STATE_NO_PRESS;
 
-            if (GetTickElaps(btn->priv.lastClickTime) < btn->priv.doubleClickTimeCfg) {
-                btn->priv.clickCnt++;
+            if (GetTickElapse(btn->priv.lastClickTime) < btn->priv.doubleClickTimeCfg) {
+                btn->record.clickCnt++;
                 btn->callback(btn, EVENT_DOUBLE_CLICKED);
             }
 
@@ -223,11 +251,11 @@ void ButtonMonitor() {
                 btn->callback(btn, EVENT_LONG_PRESSED_RELEASED);
             }
 
+            btn->record.clicked = true;
             btn->priv.isLongPressed = false;
-
             btn->priv.lastClickTime = GET_TICK();
 
-            if (GetTickElaps(btn->priv.lastPressTime) < btn->priv.longPressTimeCfg) {
+            if (GetTickElapse(btn->priv.lastPressTime) < btn->priv.longPressTimeCfg) {
                 btn->callback(btn, EVENT_SHORT_CLICKED);
             }
 

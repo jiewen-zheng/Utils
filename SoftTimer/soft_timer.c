@@ -12,9 +12,9 @@ SoftTimerGetTime_t stGetTime;
 SoftTimerDef_t SoftTimer[SOFT_TIMER_MAX_NUM];
 #endif
 
-simpleListDef(stList);
-List_t *stList = simpleList(stList);
-ListMethod_t *stMethod = simpleListMethod(stList);
+SimpleListDef(stList);
+List_t *stList = SimpleList(stList);
+ListMethod_t *stMethod = SimpleListMethod(stList);
 static bool list_init = false;
 
 
@@ -48,7 +48,7 @@ softTimerID stCreate(const char *name, uint32_t period, void(*callback)(softTime
 
     if (!list_init) {
         list_init = true;
-        simpleListInit(stList);
+        SimpleListInit(stList);
     }
 
     if (name == NULL) {

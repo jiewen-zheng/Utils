@@ -14,10 +14,7 @@ extern "C" {
 #include "stddef.h"
 
 /* Private macro -------------------------------------------------------------*/
-/**
- * Maximum number of list used
- */
-#define LIST_MAX_NUM  10
+#define LIST_NODE_MAX_NUM   64
 
 /**
  * List struct
@@ -55,7 +52,7 @@ typedef struct {
 
     bool (*set)(List_t *list, int index, void *obj);
 
-    bool (*insert)(List_t* list, int index, void* obj);
+    bool (*insert)(List_t *list, int index, void *obj);
 
     void *(*pop)(List_t *list);
 
@@ -74,35 +71,36 @@ bool listInit(List_t *list, ListMethod_t *method);
 /**
  * Define list
  */
-#define simpleListDef(name) \
+/**
+ * Define List
+ */
+#define SimpleListDef(name) \
 List_t list_##name = { 0, NULL, NULL, NULL, 0, false }; \
 ListMethod_t list_method_##name;
-
 
 /**
  * Get list pointer.
  */
-#define simpleList(name) \
+#define SimpleList(name) \
 &list_##name
 
 /**
  * Get list method
  */
-#define simpleListMethod(name) \
+#define SimpleListMethod(name) \
 &list_method_##name
 
 /**
  * List init
  */
-#define simpleListInit(name) \
+#define SimpleListInit(name) \
 do {                         \
-listInit(simpleList(name), simpleListMethod(name)); \
+listInit(SimpleList(name), SimpleListMethod(name)); \
 } while(0)
 
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif // SIMPLE_LIST_H
