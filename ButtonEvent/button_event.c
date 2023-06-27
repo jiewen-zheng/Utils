@@ -235,14 +235,14 @@ void ButtonMonitor(void) {
                 btn->callback(btn, EVENT_LONG_PRESSED);
                 btn->priv.lastLongPressTime = GET_TICK();
                 btn->record.longPressed = btn->priv.isLongPressed = true;
-            } else if (GetTickElapse(btn->priv.lastLongPressTime) >= btn->priv.longPressRepeatTimeCfg) {
+            } else if (GetTickElaps(btn->priv.lastLongPressTime) >= btn->priv.longPressRepeatTimeCfg) {
                 btn->priv.lastLongPressTime = GET_TICK();
                 btn->callback(btn, EVENT_LONG_PRESSED_REPEAT);
             }
         } else if (!isPress) {
             btn->nowState = STATE_NO_PRESS;
 
-            if (GetTickElapse(btn->priv.lastClickTime) < btn->priv.doubleClickTimeCfg) {
+            if (GetTickElaps(btn->priv.lastClickTime) < btn->priv.doubleClickTimeCfg) {
                 btn->record.clickCnt++;
                 btn->callback(btn, EVENT_DOUBLE_CLICKED);
             }
