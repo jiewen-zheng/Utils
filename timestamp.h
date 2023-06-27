@@ -5,15 +5,17 @@
 #ifndef _TIMESTAMP_H
 #define _TIMESTAMP_H
 
-#ifdef __cplusplus
-extern "C"{
-#endif
+#include <stdint.h>
 
-#include "stdint.h"
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 
 uint32_t millis();
 
 #ifdef __cplusplus
-}
-#endif
+} // extern "C" {
+#endif // __cplusplus
+
 #endif //_TIMESTAMP_H

@@ -2,7 +2,7 @@
 // Created by moon on 2023/6/17.
 //
 #include <iostream>
-#include "simple_list.h"
+#include "../../simple_list.h"
 
 typedef struct {
     int a;
