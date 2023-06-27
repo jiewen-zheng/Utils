@@ -7,7 +7,6 @@
 
 #include <stdint.h>
 
-
 class ButtonEvent {
 private:
     typedef void(*FuncCallback_t)(ButtonEvent *btn, int event);

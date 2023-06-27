@@ -9,9 +9,7 @@
 extern "C" {
 #endif // __cplusplus
 
-
-#include "stdint.h"
-#include "stdbool.h"
+#include "../simple_list/simple_list.h"
 
 typedef void *ButtonHandle_t;
 typedef ButtonHandle_t ButtonID;
@@ -83,7 +81,7 @@ void ButtonRemove(ButtonID id);
 
 bool ButtonGetRecord(const char *name, ButtonRecord_t* record);
 
-void ButtonMonitor();
+void ButtonMonitor(void);
 
 #ifdef __cplusplus
 } // extern "C" {

@@ -9,7 +9,7 @@
 extern "C" {
 #endif // __cplusplus
 
-#include "simple_list/simple_list.h"
+#include "../simple_list/simple_list.h"
 
 typedef uint32_t(*SoftTimerGetTime_t)();
 

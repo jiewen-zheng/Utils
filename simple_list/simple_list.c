@@ -54,6 +54,11 @@ int size(List_t *list) {
  * @return obj add result, true of false.
  */
 static bool add(List_t *list, void *obj) {
+    // Exceed maximum quantity
+    if (list->_size > LIST_NODE_MAX_NUM) {
+        return false;
+    }
+
     ListNode_t *tmp = (ListNode_t *) malloc(sizeof(ListNode_t));
 
     if (!tmp) {
@@ -85,6 +90,10 @@ static bool add(List_t *list, void *obj) {
  * @return
  */
 static bool unshift(List_t *list, void *obj) {
+    // Exceed maximum quantity
+    if (list->_size > LIST_NODE_MAX_NUM) {
+        return false;
+    }
 
     if (list->_size == 0)
         return add(list, obj);
@@ -127,27 +136,29 @@ static bool set(List_t *list, int index, void *obj) {
  * @param obj
  * @return
  */
-static bool insert(List_t* list, int index, void* obj) {
+static bool insert(List_t *list, int index, void *obj) {
+    // Exceed maximum quantity
+    if (list->_size > LIST_NODE_MAX_NUM) {
+        return false;
+    }
+
     // Check if index position is in bounds
     if (index < 0 || index >= list->_size)
         return false;
 
-
     if (index == 0 || list->_size <= 1) {
         return unshift(list, obj);
-    }
-    else if (index == list->_size - 1) {
+    } else if (index == list->_size - 1) {
         return add(list, obj);
-    }
-    else {
+    } else {
         // Already have elements inserted
-        ListNode_t* tmp = (ListNode_t*)malloc(sizeof(ListNode_t));
+        ListNode_t *tmp = (ListNode_t *) malloc(sizeof(ListNode_t));
         if (!tmp) {
             return false;
         }
-       
-        ListNode_t* _last = getNode(list, index - 1);
-        ListNode_t* _next = _last->next;
+
+        ListNode_t *_last = getNode(list, index - 1);
+        ListNode_t *_next = _last->next;
 
         tmp->data = obj;
         tmp->next = _next;

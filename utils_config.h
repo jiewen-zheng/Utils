@@ -2,8 +2,8 @@
 // Created by moon on 2023/6/26.
 //
 
-#ifndef _TIMESTAMP_H
-#define _TIMESTAMP_H
+#ifndef _UTILS_CONFIG_H
+#define _UTILS_CONFIG_H
 
 #include <stdint.h>
 
@@ -12,10 +12,10 @@ extern "C" {
 #endif // __cplusplus
 
 
-uint32_t millis();
+uint32_t millis(void);
 
 #ifdef __cplusplus
 } // extern "C" {
 #endif // __cplusplus
 
-#endif //_TIMESTAMP_H
+#endif //_UTILS_CONFIG_H

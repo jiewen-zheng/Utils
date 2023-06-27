@@ -14,14 +14,14 @@ using namespace std;
 
 void setup() {
     // define list "a"
-    simpleListDef(a);
+    SimpleListDef(a);
 
     // init list "a"
-    simpleListInit(a);
+    SimpleListInit(a);
 
     // get list and list method
-    List_t *list = simpleList(a);
-    ListMethod_t *method = simpleListMethod(a);
+    List_t *list = SimpleList(a);
+    ListMethod_t *method = SimpleListMethod(a);
 
     cout << "size : " << method->size(list) << endl;
 

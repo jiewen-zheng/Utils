@@ -21,8 +21,8 @@
 - 声明链表对象并初始化它
 ```
 // 声明一个名叫 mylist 的链表
-simpleListDef(mylist); //!< 声明
-simpleListInit(mylist); //!< 初始化
+SimpleListDef(mylist); //!< 声明
+SimpleListInit(mylist); //!< 初始化
 
 
 // 或者直接使用结构体直接声明
@@ -35,9 +35,9 @@ ListMethod_t method = {...};
 - 注意,  使用宏声明链表, 需要使用指针来指向这个链表
 ```
 // 用指针获取链表
-List_t *list = simpleList(mylist);
+List_t *list = SimpleList(mylist);
 // 用指针获取操作链表的方法
-ListMethod_t *method = simpleListMethod(mylist);
+ListMethod_t *method = SimpleListMethod(mylist);
 ```
 
 

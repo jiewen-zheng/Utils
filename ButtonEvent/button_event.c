@@ -3,12 +3,11 @@
 //
 
 #include "button_event.h"
-#include "../simple_list/simple_list.h"
 
 #include <string.h>
 #include <stdlib.h>
 
-#include "timestamp.h"
+#include "utils_config.h"
 
 #define GET_TICK() millis()
 
@@ -25,9 +24,9 @@ ButtonDef_t Button[BUTTON_MAX_NUM];
 #endif
 
 // 创建链表
-simpleListDef(btnList);
-List_t *btnList = simpleList(btnList);
-ListMethod_t *btnMethod = simpleListMethod(btnList);
+SimpleListDef(btnList);
+List_t *btnList = SimpleList(btnList);
+ListMethod_t *btnMethod = SimpleListMethod(btnList);
 static bool list_init = false;
 
 
@@ -72,7 +71,7 @@ ButtonID ButtonCreate(const char *name, bool (*getPress)(), void (*callback)(But
     // 链表初始化
     if (!list_init) {
         list_init = true;
-        simpleListInit(btnList);
+        SimpleListInit(btnList);
     }
 
     if (name == NULL || getPress == NULL || callback == NULL) {
@@ -196,7 +195,7 @@ static uint32_t GetTickElaps(uint32_t prevTick) {
  * 监控事件，建议扫描周期10ms
  * @param isPress 当前按键状态
  */
-void ButtonMonitor() {
+void ButtonMonitor(void) {
     int size = btnMethod->size(btnList);
     if (size <= 0) {
         return;
