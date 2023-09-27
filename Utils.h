@@ -10,9 +10,10 @@
 extern "C"{
 #endif
 
-#include "SoftTimer/soft_timer.h"
+
 #include "ButtonEvent/button_event.h"
 #include "simple_list/simple_list.h"
+#include "soft_timer/soft_timer.h"
 #include "ymodem/ymodem.h"
 
 #ifdef __cplusplus
