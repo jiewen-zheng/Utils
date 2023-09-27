@@ -7,17 +7,19 @@
 
 
 #if !SOFT_TIMER_DYNAMIC_EN
-SoftTimerDef_t TimerInstance[SOFT_TIMER_MAX_NUM];
+SoftTimerDef TimerInstance[SOFT_TIMER_MAX_NUM];
 #endif
 
-
-/**
- * Set get timestamp function
- * @param get_Time
- */
-void SoftTimer::setTime(SoftTimerGetTime_t get_Time){
-    stGetTime = get_Time;
+SoftTimer::SoftTimer(SoftTimerGetTime_t _getTimestamp) :
+        getTimestamp(_getTimestamp) {
+    list.clear();
 }
+
+
+SoftTimer::~SoftTimer() {
+    list.clear();
+}
+
 
 /**
  * Dynamic create timer
@@ -28,18 +30,19 @@ void SoftTimer::setTime(SoftTimerGetTime_t get_Time){
  * @param mode - Timer run mode
  * @return timer object or false
  */
-softTimerID SoftTimer::create(const char *name, uint32_t period, void (*callback)(void *), void *data, stMode_t mode) {
+softTimerID SoftTimer::create(const char *name, uint32_t period, void (*callback)(void *), void *data, Mode mode) {
 
     if (isExists(name) || callback == nullptr) {
         // timer is exists.
         return nullptr;
     }
 
-    SoftTimerDef_t *new_timer = nullptr;
-#if SOFT_TIMER_DYNAMIC_EN
-    new_timer = new SoftTimerDef_t;
+    SoftTimerDef *new_timer = nullptr;
 
-    if (new_timer == nullptr) {
+#if SOFT_TIMER_DYNAMIC_EN
+    new_timer = new(SoftTimerDef);
+
+    if (nullptr == new_timer) {
         return nullptr;
     }
 #else
@@ -55,19 +58,57 @@ softTimerID SoftTimer::create(const char *name, uint32_t period, void (*callback
     }
 #endif
 
-    new_timer->name = (char *) name;
-    new_timer->period = (period > 0) ? period : 1;
-    new_timer->mode = mode;
+    new_timer->name      = (char *) name;
+    new_timer->period    = (period > 0) ? period : 1;
+    new_timer->mode      = mode;
     new_timer->isStarted = false;
-    new_timer->callback = callback;
-    new_timer->data = data;
+    new_timer->callback  = callback;
+    new_timer->data      = data;
 
-    if (!list.add(new_timer)) {
-        return nullptr;
-    }
+    list.push_back(new_timer);
 
     return new_timer;
 }
+
+void SoftTimer::start(const char *name) {
+    softTimerID id = isExists(name);
+
+    if (!id) {
+        return;
+    }
+
+    start(id);
+}
+
+void SoftTimer::start(softTimerID id) {
+    if (!id) {
+        return;
+    }
+
+    auto *timer = (SoftTimerDef *) id;
+
+    if (getTimestamp == nullptr)
+        return;
+
+    timer->time      = getTimestamp();
+    timer->isStarted = true;
+}
+
+
+void SoftTimer::stop(const char *name) {
+    softTimerID id = isExists(name);
+    stop(id);
+}
+
+void SoftTimer::stop(softTimerID id) {
+    if (!id) {
+        return;
+    }
+
+    auto *timer = (SoftTimerDef *) id;
+    timer->isStarted = false;
+}
+
 
 /**
  * Remove timer.
@@ -92,24 +133,26 @@ void SoftTimer::remove(softTimerID id) {
     }
 
     // remove list none
-    auto *remove_timer = (SoftTimerDef_t *) list.remove(index);
+    auto *remove_timer = list[index];
+    list.erase(list.begin() + index);
 
 #if SOFT_TIMER_DYNAMIC_EN
     // free the timer memory
     delete remove_timer;
 #else
-    memset(remove_timer, 0, sizeof(SoftTimerDef_t));
+    memset(remove_timer, 0, sizeof(SoftTimerDef));
 #endif
 
 }
 
 
 softTimerID SoftTimer::isExists(const char *name) {
-    int size = list.size();
-    for (int i = 0; i < size; i++) {
-        auto *pItem = list.get(i);
-        if (strcmp(pItem->name, name) == 0) {
-            return pItem;
+    if (list.empty())
+        return nullptr;
+
+    for (auto &item: list) {
+        if (strcmp(item->name, name) == 0) {
+            return item;
         }
     }
 
@@ -117,80 +160,60 @@ softTimerID SoftTimer::isExists(const char *name) {
 }
 
 int SoftTimer::isExists(softTimerID id) {
-    int size = list.size();
-    for (int i = 0; i < size; i++) {
-        auto *pItem = list.get(i);
-        if (pItem == id) {
-            return i;
-        }
+    if (list.empty())
+        return -1;
+
+    int       index = 0;
+    for (auto &item: list) {
+        if (item == id)
+            return index;
+        index++;
     }
 
     return -1;
 }
 
+uint32_t SoftTimer::getFreeTime() {
+    if (getTimestamp == nullptr)
+        return 0;
 
-void SoftTimer::start(const char *name) {
-    softTimerID id = isExists(name);
+    uint32_t nowTime  = getTimestamp();
+    uint32_t freeTime = UINT32_MAX;
 
-    if (!id) {
-        return;
-    }
-
-    start(id);
-}
-
-void SoftTimer::start(softTimerID id) {
-    if (!id) {
-        return;
-    }
-
-    auto *timer = (SoftTimerDef_t *) id;
-
-    timer->time = SOFT_TIMER_MILLIS();
-    timer->isStarted = true;
-}
-
-
-void SoftTimer::stop(const char *name) {
-    softTimerID id = isExists(name);
-    stop(id);
-}
-
-void SoftTimer::stop(softTimerID id) {
-    if (!id) {
-        return;
-    }
-
-    auto *timer = (SoftTimerDef_t *) id;
-    timer->isStarted = false;
-}
-
-void SoftTimer::process() {
-    uint32_t time = SOFT_TIMER_MILLIS();
-
-    int size = list.size();
-    if (size <= 0) {
-        return;
-    }
-
-    SoftTimerDef_t *pItem;
-    for (int i = 0; i < size; i++) {
-        pItem = list.get(i);
-        if (!pItem)
-            return;
-
-        if ((pItem->isStarted) && (time - pItem->time > pItem->period)) {
-            pItem->callback(pItem->data);
-            pItem->time = time;
-
-            if (pItem->mode == stMode_t::stModeOnce) {
-                remove(pItem);
-            }
+    for (auto &timer: list) {
+        if (!timer->isStarted) {
+            continue;
         }
 
+        uint32_t time = timer->time + timer->period - nowTime;
+        if (time < freeTime)
+            freeTime = time;
     }
 
+    return freeTime == UINT32_MAX ? 0 : freeTime;
 }
 
 
+void SoftTimer::process() {
+    if (getTimestamp == nullptr)
+        return;
 
+    uint32_t time = getTimestamp();
+
+    if (list.empty())
+        return;
+
+    for (auto &timer: list) {
+        if (timer == nullptr)
+            return;
+
+        if (timer->isStarted && (time - timer->time > timer->period)) {
+            timer->callback(timer->data);
+            timer->time = time;
+
+            if (timer->mode == SoftTimer::OnceMode)
+                remove(timer);
+        }
+    }
+
+}

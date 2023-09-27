@@ -8,10 +8,8 @@
 
 ## 安装
 
-1. 从`gitHub`[下载](https://github.com/jiewen-zheng/SoftTimer.git)这个库的最新版本.
+1. 从`gitHub`[下载](https://github.com/jiewen-zheng/Utils/tree/main/soft_timer)这个库的最新版本.
 2. 解压后将文件夹`SoftTimer`添加到你的项目当中.
-3. 将文件`SoftTimer.h`中的`SOFT_TIMER_MILLIS`宏替换为当前项目中获取时间戳的函数.
-4. 选择`C`或`C++`头文件引用至项目中.
 
 
 
@@ -21,60 +19,50 @@
 
 
 
-- 使用静态方法创建定时器
+- 使用静态方法创建定时器，关闭宏`SOFT_TIMER_DYNAMIC_EN`
 
 ```
-// 实例化一个定时器控制器对象
-SoftTimer sTimer;
+#define SOFT_TIMER_DYNAMIC_EN 0 // 赋值0表示启用静态数组存储定时器句柄
 
-// 定义一个定时器的回调函数
-void timer0_callback(void *)
-{
-}
-
-// 声明一个静态定时器 tiemr0, 这个定时器超时时间为1秒
-// 使用循环运行模式"stModeCirculate"
-softTimerDef(timer0, 1000, stModeCirculate, timer0_callback, nullptr);
-
-// 创建这个定时器
-sTimer.create(softTimer(timer0));
-
-// 让定时器跑起来
-sTimer.start("timer0");
-
-// 在主循环中执行定时器控制器的主要方法
-sTimer.process(); // 方法必须尽可能快的被调用,否则定时器可能无法正常运行
+#define SOFT_TIMER_MAX_NUM  16  // 设置最大定时器数量
 
 ```
 
 
 
-- 使用动态方法创建定时器 ，使用动态创建时需要开启宏`SOFT_TIMER_DYNAMIC_EN`
+- 使用动态方法创建定时器 ，开启宏`SOFT_TIMER_DYNAMIC_EN`
 
 ```
- // 实例化一个定时器控制器对象
-SoftTimer sTimer;
+//! 实例化一个定时器控制器对象
+SoftTimer sTimer(timestamp); //! 将"timestamp"替换会获取时间戳的函数指针
 
-// 定义一个定时器的回调函数
+//! 定义一个定时器的回调函数
 void timer1_callback(void *)
 {
+	printf("timer1 timeout.\n");
 }
 
-// 动态创建定时器 tiemr1, 超时时间为500毫秒
-// 使用单次运行模式"stModeOnce"
-// 这个定时器执行完回调函数后会将自己删除
-sTimer.create("timer1", 500, timer1_callback, nullptr, stModeOnce);
+/** 动态创建定时器 tiemr1, 超时时间为 500ms
+ * 使用单次运行模式"OnceMode"
+ * 这个定时器执行完回调函数后会将删除自身并回收内存。
+ */
+sTimer.create("timer1", 500, timer1_callback, nullptr, OnceMode);
 
-// 让定时器跑起来
+//! 让定时器跑起来
 sTimer.start("timer1");
 
-// 在主循环中执行定时器控制器的主要方法
-sTimer.process(); // 方法必须尽可能快的被调用,否则定时器可能无法正常运行
+//! 在主循环中执行定时器控制器的主要方法
+sTimer.process(); //! 方法必须尽可能快的被调用,否则定时器的超时时间可能错位
 ```
 
   
 
+## 注意
+
+这个库使用到了"std::vector"会连接`C++`库，如果你是小型嵌入式设备对存储空间有要求，请使用`C`语言版本的”soft_timer“库，它会一定程度的缩减代码大小。
+
+
+
 ## 历史版本
 
-- `1.1 (2023-06-25)`：添加C语言版本支持
 - `1.0 (2023-06-17)`：原始版本

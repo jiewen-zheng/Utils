@@ -5,6 +5,7 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+/*---------------------------- C Scope ---------------------------*/
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -12,10 +13,12 @@ extern "C"{
 #include "SoftTimer/soft_timer.h"
 #include "ButtonEvent/button_event.h"
 #include "simple_list/simple_list.h"
+#include "ymodem/ymodem.h"
 
 #ifdef __cplusplus
 }
-#include "LinkedList/LinkedList.h"
+
+/*---------------------------- C++ Scope ---------------------------*/
 #include "ButtonEvent/ButtonEvent.h"
 #include "SoftTimer/SoftTimer.h"
 

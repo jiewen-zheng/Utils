@@ -2,19 +2,11 @@
 // Created by moon on 2023/6/15.
 //
 
-#ifndef _SOFT_TIMER_H
-#define _SOFT_TIMER_H
+#ifndef SOFT_TIMER_H
+#define SOFT_TIMER_H
 
-
-#include <stdint.h>
-#include "../LinkedList/LinkedList.h"
-
-typedef uint32_t(*SoftTimerGetTime_t)();
-
-/**
- * Provide timer timing
- */
-#define SOFT_TIMER_MILLIS stGetTime
+#include <cstdint>
+#include <vector>
 
 /**
  * Enable dynamic creat timer
@@ -25,67 +17,50 @@ typedef uint32_t(*SoftTimerGetTime_t)();
  * Static timer max number
  */
 #if !SOFT_TIMER_DYNAMIC_EN
-#define SOFT_TIMER_MAX_NUM  8
+#define SOFT_TIMER_MAX_NUM  16
 #endif
-
-
-/**
- * Timer run mode type
- */
-typedef enum {
-    stModeOnce = 0,     //!< Timer once run
-    stModeCirculate,    //!< Timer cycle run
-} stMode_t;
-
-/**
- * Timer object description
- */
-typedef struct SoftTimerDef_s {
-    char *name;                 //!< Timer name
-    uint32_t time;              //!< Current timestamp
-    uint32_t period;            //!< Timer period
-    stMode_t mode;              //!< Timer run mode
-    bool isStarted;             //!< Timer run status
-    void (*callback)(void *data);   //!< Timer IRQ callback function
-    void *data;                 //!< User defined data object pointer
-} SoftTimerDef_t;
-
 
 typedef void *softTimerHandle_t;
 typedef softTimerHandle_t softTimerID;
 
-/**
- * Declares a static timer params method
- */
-#define softTimerDef(name, period, mode, callback, data) \
-const SoftTimerDef_t soft_timer_##name = \
-{ #name, 0, period, mode, false, false, callback, data }
-
-/**
- * Get timer object
- */
-#define softTimer(name) \
-&soft_timer_##name
-
+typedef uint32_t(*SoftTimerGetTime_t)();
 
 class SoftTimer {
 public:
-    SoftTimer() {};
+    /**
+ * Timer run mode type
+ */
+    enum Mode {
+        OnceMode = 0,     //!< Timer once run
+        CirculateMode    //!< Timer cycle run
+    };
 
-    void setTime(SoftTimerGetTime_t get_Time);
+    /**
+     * Timer object description
+     */
+    struct SoftTimerDef {
+        char     *name;                 //!< Timer name
+        uint32_t time;              //!< Current timestamp
+        uint32_t period;            //!< Timer period
+        Mode     mode;              //!< Timer run mode
+        bool     isStarted;             //!< Timer run status
+        void (*callback)(void *data);   //!< Timer IRQ callback function
+        void *data;                 //!< User defined data object pointer
+    };
+
+public:
+    explicit SoftTimer(SoftTimerGetTime_t _getTimestamp);
+    ~SoftTimer();
 
     /**
      * Dynamic create timer
      */
     softTimerID create(const char *name, uint32_t period, void(*callback)(void *data),
-                       void *data = nullptr, stMode_t mode = stModeCirculate);
+                       void *data = nullptr, Mode mode = CirculateMode);
 
     void start(const char *name);
-
     void start(softTimerID id);
-
     void stop(const char *name);
-
     void stop(softTimerID id);
 
     /**
@@ -93,20 +68,20 @@ public:
   * @param name - Timer name
   */
     void remove(const char *name);
-
     void remove(softTimerID id);
 
     softTimerID isExists(const char *name);
-
     int isExists(softTimerID id);
+
+    uint32_t getFreeTime();
 
     void process();
 
 private:
-    SoftTimerGetTime_t stGetTime;
+    SoftTimerGetTime_t getTimestamp = nullptr;
 
-    LinkedList<SoftTimerDef_t *> list;
+    std::vector<SoftTimerDef *> list;
 };
 
 
-#endif //_SOFT_TIMER_H
+#endif //SOFT_TIMER_H
