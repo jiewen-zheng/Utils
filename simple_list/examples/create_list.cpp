@@ -16,14 +16,13 @@ void setup() {
     // define list "a"
     SimpleListDef(a);
 
-    // init list "a"
-    SimpleListInit(a);
+    // get list pointer.
+    List_t *list = GetList(a);
 
-    // get list and list method
-    List_t *list = SimpleList(a);
-    ListMethod_t *method = SimpleListMethod(a);
+    // get list method
+    ListMethod_t *method = GetMethod(a);
 
-    cout << "size : " << method->size(list) << endl;
+    cout << "size : " << method->size(GetList(a)) << endl;
 
     test t1 = {
             1,
@@ -37,7 +36,7 @@ void setup() {
             (char *) "t2"
     };
 
-    method->add(list, &t1);
+    method->add(GetList(a), &t1);
     method->add(list, &t2);
 
     cout << "size : " << method->size(list) << endl;

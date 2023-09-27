@@ -6,7 +6,7 @@
 
 Stm32YModem ymodem;
 
-void app_boot() {
+void application() {
 //    printf("bootloader.\r\n");
 
     while (true) {

@@ -3,8 +3,8 @@
 //
 
 #include "utils_config.h"
-#include "drv_delay.h"
+
 
 uint32_t millis(void) {
-    return Drv_GetTimestamp();
+    return 0;
 }

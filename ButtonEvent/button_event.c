@@ -25,8 +25,8 @@ ButtonDef_t Button[BUTTON_MAX_NUM];
 
 // 创建链表
 SimpleListDef(btnList);
-List_t *btnList = SimpleList(btnList);
-ListMethod_t *btnMethod = SimpleListMethod(btnList);
+List_t *btnList = GetList(btnList);
+ListMethod_t *btnMethod = GetMethod(btnList);
 static bool list_init = false;
 
 
