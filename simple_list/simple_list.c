@@ -60,10 +60,10 @@ static bool add(List_t *list, void *obj) {
     }
 
     ListNode_t *tmp = (ListNode_t *) malloc(sizeof(ListNode_t));
-
     if (!tmp) {
         return false;
     }
+
     tmp->data = obj;
     tmp->next = NULL;
 

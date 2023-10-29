@@ -5,9 +5,8 @@
 #include "ButtonEvent.h"
 #include "string.h"
 
-#include "utils_config.h"
 
-#define GET_TICK() millis()
+#define GET_TICK() 0
 
 #ifndef GET_TICK
 #error "Please define the GET_TICK() function to get the system time."

@@ -14,7 +14,7 @@ extern "C" {
 #include "stddef.h"
 
 /* Private macro -------------------------------------------------------------*/
-#define LIST_NODE_MAX_NUM   32
+#define LIST_NODE_MAX_NUM   64
 
 /**
  * List struct

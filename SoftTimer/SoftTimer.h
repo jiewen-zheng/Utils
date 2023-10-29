@@ -63,10 +63,6 @@ public:
     void stop(const char *name);
     void stop(softTimerID id);
 
-    /**
-  * Only the dynamic application timer is available.
-  * @param name - Timer name
-  */
     void remove(const char *name);
     void remove(softTimerID id);
 

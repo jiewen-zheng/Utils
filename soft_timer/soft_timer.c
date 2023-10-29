@@ -16,8 +16,8 @@ SoftTimerDef_t SoftTimer[SOFT_TIMER_MAX_NUM];
  * \brief define timer list global variable
  */
 SimpleListDef(softimer)
-List_t             *stList   = GetList(softimer);
-ListMethod_t       *stMethod = GetMethod(softimer);
+        List_t *stList = GetList(softimer);
+        ListMethod_t *stMethod = GetMethod(softimer);
 
 /**
  * \brief check the timer exists
@@ -25,7 +25,7 @@ ListMethod_t       *stMethod = GetMethod(softimer);
  * \return index of the timer in the list,
  *          no timer return -1.
  */
-static int isExists(SoftTimerID id) {
+        static int isExists(SoftTimerID id) {
     int size = stMethod->size(stList);
 
     for (int i = 0; i < size; i++) {
@@ -51,10 +51,10 @@ static SoftTimerID getTimer(const char *name) {
     return NULL;
 }
 
- /**
-  * \brief initialize soft timer, should be before using timer.
-  * \param get_time get timestamp function pointer
-  */
+/**
+ * \brief initialize soft timer, should be before using timer.
+ * \param get_time get timestamp function pointer
+ */
 void sTimerInitialize(SoftTimerGetTime_t get_time) {
     SimpleListInit(softimer)
     stGetTime = get_time;

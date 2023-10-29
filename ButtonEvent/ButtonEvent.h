@@ -2,8 +2,8 @@
 // Created by Monster on 2023/6/26.
 //
 
-#ifndef _BUTTONEVENT_H
-#define _BUTTONEVENT_H
+#ifndef BUTTONEVENT_H
+#define BUTTONEVENT_H
 
 #include <stdint.h>
 
@@ -14,9 +14,17 @@ private:
 public:
     /* Button event */
     typedef enum {
-#define EVENT_DEF(evt) evt
-#include "EventType.inc"
-#undef EVENT_DEF
+        EVENT_NONE,
+        EVENT_PRESSED,
+        EVENT_PRESSING,
+        EVENT_LONG_PRESSED,
+        EVENT_LONG_PRESSED_REPEAT,
+        EVENT_LONG_PRESSED_RELEASED,
+        EVENT_RELEASED,
+        EVENT_CHANGED,
+        EVENT_CLICKED,
+        EVENT_SHORT_CLICKED,
+        EVENT_DOUBLE_CLICKED,
         EVENT_LAST
     } Event_t;
 
@@ -91,4 +99,4 @@ private:
 };
 
 
-#endif //_BUTTONEVENT_H
+#endif //BUTTONEVENT_H
