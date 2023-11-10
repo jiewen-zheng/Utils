@@ -7,8 +7,9 @@
 void TimerBase::start(uint32_t cnt) {
 //    if(!getTimestamp)
 //        return;
-//
-    time      = cnt;
+
+    cnt = (cnt > period) ? period : cnt;
+    time      = getTime ? getTime() + cnt : cnt;
     isStarted = true;
 }
 

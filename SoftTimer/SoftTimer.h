@@ -13,7 +13,7 @@
 class SoftTimer {
 public:
     explicit SoftTimer(TimerBase::GetTime get_time) :
-            getTimestamp(get_time) {}
+            getTime(get_time) {}
 
     ~SoftTimer() {}
 
@@ -31,7 +31,7 @@ public:
     uint32_t freeTime();
 
 private:
-    GetTimerBase::GetTime getTimestamp = nullptr;
+    TimerBase::GetTime getTime = nullptr;
 
     std::list<TimerBase *> list;
 };
