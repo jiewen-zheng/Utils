@@ -19,22 +19,35 @@
 
 
 
-- 使用静态方法创建定时器，关闭宏`SOFT_TIMER_DYNAMIC_EN`
+- 使用静态方法创建定时器
 
 ```
-#define SOFT_TIMER_DYNAMIC_EN 0 // 赋值0表示启用静态数组存储定时器句柄
+//! 定义一个定时器的回调函数
+void timer_callback(void *)
+{
+	printf("timer timeout.\n");
+}
 
-#define SOFT_TIMER_MAX_NUM  16  // 设置最大定时器数量
+//! 实例化一个控制器对象
+SoftTimer manager(timestamp); //! 将"timestamp"替换会获取时间戳的函数指针
 
+//! 实例化一个静态定时器
+TimerBase timer("t1", 500, timer_callback);
+
+//! 添加定时器到控制器中
+softTimer.add(&timer);
+
+//! 在主循环中执行定时器控制器的主要方法
+manager.run();
 ```
 
 
 
-- 使用动态方法创建定时器 ，开启宏`SOFT_TIMER_DYNAMIC_EN`
+- 使用动态方法创建定时器
 
 ```
-//! 实例化一个定时器控制器对象
-SoftTimer sTimer(timestamp); //! 将"timestamp"替换会获取时间戳的函数指针
+//! 实例化一个控制器对象
+SoftTimer manager(timestamp); //! 将"timestamp"替换会获取时间戳的函数指针
 
 //! 定义一个定时器的回调函数
 void timer1_callback(void *)
@@ -46,23 +59,24 @@ void timer1_callback(void *)
  * 使用单次运行模式"OnceMode"
  * 这个定时器执行完回调函数后会将删除自身并回收内存。
  */
-sTimer.create("timer1", 500, timer1_callback, nullptr, OnceMode);
+TimerBase *timer = manager.create("timer1", 500, timer1_callback, nullptr, OnceMode);
 
 //! 让定时器跑起来
-sTimer.start("timer1");
+timer.start();
 
 //! 在主循环中执行定时器控制器的主要方法
-sTimer.process(); //! 方法必须尽可能快的被调用,否则定时器的超时时间可能错位
+manager.run(); //! 方法必须尽可能快的被调用,否则定时器的超时时间可能错位
 ```
 
   
 
 ## 注意
 
-这个库使用到了"std::vector"会连接`C++`库，如果你是小型嵌入式设备对存储空间有要求，请使用`C`语言版本的”soft_timer“库，它会一定程度的缩减代码大小。
+这个库使用到了"std::list"会连接`C++`库，如果你是小型嵌入式设备对存储空间有要求，请使用`C`语言版本的”soft_timer“库，它会一定程度的缩减代码大小。
 
 
 
 ## 历史版本
 
 - `1.0 (2023-06-17)`：原始版本
+- `2.0 (2023-11-10)`：分离定时器对象和控制器

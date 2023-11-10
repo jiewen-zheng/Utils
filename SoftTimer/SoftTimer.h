@@ -1,83 +1,42 @@
 //
-// Created by moon on 2023/6/15.
+// Created by moon on 2023/11/10.
 //
 
-#ifndef SOFT_TIMER_H
-#define SOFT_TIMER_H
+#ifndef STM32PICODK_SOFTTIMER_H
+#define STM32PICODK_SOFTTIMER_H
 
 #include <cstdint>
-#include <vector>
+#include "list"
 
-/**
- * Enable dynamic creat timer
- */
-#define SOFT_TIMER_DYNAMIC_EN   1
-
-/**
- * Static timer max number
- */
-#if !SOFT_TIMER_DYNAMIC_EN
-#define SOFT_TIMER_MAX_NUM  16
-#endif
-
-typedef void *softTimerHandle_t;
-typedef softTimerHandle_t softTimerID;
-
-typedef uint32_t(*SoftTimerGetTime_t)();
+#include "TimerBase.h"
 
 class SoftTimer {
 public:
-    /**
- * Timer run mode type
- */
-    enum Mode {
-        OnceMode = 0,     //!< Timer once run
-        CirculateMode    //!< Timer cycle run
-    };
-
-    /**
-     * Timer object description
-     */
-    struct SoftTimerDef {
-        char     *name;                 //!< Timer name
-        uint32_t time;              //!< Current timestamp
-        uint32_t period;            //!< Timer period
-        Mode     mode;              //!< Timer run mode
-        bool     isStarted;             //!< Timer run status
-        void (*callback)(void *data);   //!< Timer IRQ callback function
-        void *data;                 //!< User defined data object pointer
-    };
+    typedef uint32_t (*GetTime)();
 
 public:
-    explicit SoftTimer(SoftTimerGetTime_t _getTimestamp);
-    ~SoftTimer();
+    explicit SoftTimer(GetTime get_time) :
+            getTimestamp(get_time) {}
 
-    /**
-     * Dynamic create timer
-     */
-    softTimerID create(const char *name, uint32_t period, void(*callback)(void *data),
-                       void *data = nullptr, Mode mode = CirculateMode);
+    ~SoftTimer() {}
 
-    void start(const char *name);
-    void start(softTimerID id);
-    void stop(const char *name);
-    void stop(softTimerID id);
+    void add(TimerBase *timer); //!< static memory method
+    TimerBase* create(const char *name, uint32_t period, TimerBase::Callback callback,
+                void *data = nullptr, TimerBase::Mode mode = TimerBase::CirculateMode);//!< dynamic memory method
 
-    void remove(const char *name);
-    void remove(softTimerID id);
+    void remove(TimerBase *timer);
+    void remove(const char* name);
+    TimerBase *isExists(TimerBase *timer);
+    TimerBase *isExists(const char *name);
 
-    softTimerID isExists(const char *name);
-    int isExists(softTimerID id);
+    void run();
 
-    uint32_t getFreeTime();
-
-    void process();
+    uint32_t freeTime();
 
 private:
-    SoftTimerGetTime_t getTimestamp = nullptr;
+    GetTime getTimestamp = nullptr;
 
-    std::vector<SoftTimerDef *> list;
+    std::list<TimerBase *> list;
 };
 
-
-#endif //SOFT_TIMER_H
+#endif //STM32PICODK_SOFTTIMER_H
