@@ -22,14 +22,17 @@ void timer_callback(void *data){
     }
 }
 
-TimerBase timer("t2", 500, timer_callback);
+TimerBase t2("t2", 500, timer_callback);
 
 void setup() {
     //!< dynamic create
-    softTimer.create("t1", 1000, timer_callback);
+    TimerBase *t1 = softTimer.create("t1", 1000, timer_callback);
 
     //!< static create
-    softTimer.add(&timer);
+    softTimer.add(&t2);
+
+    t1->start(0);
+    t2.start();
 }
 
 void loop(){

@@ -4,11 +4,11 @@
 
 #include "TimerBase.h"
 
-void TimerBase::start(uint32_t current_time) {
+void TimerBase::start(uint32_t cnt) {
 //    if(!getTimestamp)
 //        return;
 //
-    time      = current_time;
+    time      = cnt;
     isStarted = true;
 }
 

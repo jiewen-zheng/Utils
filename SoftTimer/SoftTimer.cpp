@@ -12,6 +12,7 @@ void SoftTimer::add(TimerBase *timer) {
 
     timer->isDynamic = false;
     list.push_back(timer);
+    timer->getTime = getTime;
 }
 
 TimerBase *SoftTimer::create(const char *name, uint32_t period, TimerBase::Callback callback,
@@ -24,6 +25,7 @@ TimerBase *SoftTimer::create(const char *name, uint32_t period, TimerBase::Callb
         timer = new TimerBase(name, period, callback, data, mode);
         timer->isDynamic = true;
         list.push_back(timer);
+        timer->getTime = getTime;
     } catch (std::bad_alloc &e) {
         return nullptr;
     }
@@ -79,11 +81,11 @@ void SoftTimer::remove(const char *name) {
 }
 
 void SoftTimer::run() {
-    if (list.empty() || !getTimestamp) {
+    if (list.empty() || !getTime) {
         return;
     }
 
-    uint32_t time = getTimestamp();
+    uint32_t time = getTime();
 
     for (auto &timer: list) {
         if (timer->isStarted && timer->calcTimeLeft(time) <= 0) {

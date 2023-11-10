@@ -10,6 +10,7 @@
 class TimerBase {
 public:
     typedef void (*Callback)(void *data);
+    typedef uint32_t (*GetTime)();
 
     enum Mode {
         OnceMode = 0,     //!< Timer once run
@@ -27,6 +28,8 @@ public:
     void       *data;     //!< User defined data object pointer
     Mode       mode;      //!< Timer run mode
 
+    GetTime    getTime;
+
 public:
     explicit TimerBase(const char *name_, uint32_t period_,
                        Callback callback_, void *data_ = nullptr, Mode mode_ = OnceMode) :
@@ -37,7 +40,7 @@ public:
 
     ~TimerBase() {}
 
-    void start(uint32_t current_time);
+    void start(uint32_t cnt = 0);
     void stop();
 
     uint32_t calcTimeLeft(uint32_t current_time);
