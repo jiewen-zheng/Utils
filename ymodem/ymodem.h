@@ -51,7 +51,7 @@ public:
         StatusError
     };
 
-    enum OperationType {
+    enum OperateType {
         FileOpenReadOnly,
         FileOpenWriteOnly,
         FileOpenReadWrite,
@@ -62,6 +62,11 @@ public:
         FileSetSize,
         FileWrite,
         FileRead
+    };
+
+    enum OperateCode : int {
+        OperateFail    = -1,
+        OperateSuccess = 0,
     };
 
     struct Counter {
@@ -92,7 +97,7 @@ protected:
 
     virtual uint32_t read(uint8_t *data, uint32_t len) { return 0; }
 
-    virtual uint32_t fileOperation(OperationType type, uint8_t *data, uint32_t len) { return 0; }
+    virtual int fileOperate(OperateType type, uint8_t *data, uint32_t len) { return -1; }
 
 private:
     Code receivePacket();
@@ -103,8 +108,7 @@ private:
     void errorCount();
     void timeOutCount();
 
-
-    bool transmitFileOperation(Status _status);
+    bool transmitFileOperate(Status _status);
     void transmitStageNone();
     void transmitStageEstablishing();
     void transmitStageEstablished();
@@ -112,7 +116,7 @@ private:
     void transmitStageFinishing();
     void transmitStageFinished();
 
-    bool receiveFileOperation(Status _status, uint32_t size = 0);
+    bool receiveFileOperate(Status _status, uint32_t size = 0);
     void receiveStageNone();
     void receiveStageEstablishing();
     void receiveStageEstablished();

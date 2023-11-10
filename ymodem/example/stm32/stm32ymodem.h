@@ -25,7 +25,7 @@ public:
 protected:
     uint32_t write(uint8_t *data, uint32_t len) override;
     uint32_t read(uint8_t *data, uint32_t len) override;
-    uint32_t fileOperation(OperationType type, uint8_t *data, uint32_t len) override;
+    int fileOperate(OperateType type, uint8_t *data, uint32_t len) override;
 
 private:
     uint32_t writeAddress;
