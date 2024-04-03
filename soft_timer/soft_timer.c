@@ -25,7 +25,7 @@ SimpleListDef(softimer)
  * \return index of the timer in the list,
  *          no timer return -1.
  */
-        static int isExists(SoftTimerID id) {
+static int isExists(SoftTimerID id) {
     int size = stMethod->size(stList);
 
     for (int i = 0; i < size; i++) {
