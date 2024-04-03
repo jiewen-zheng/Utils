@@ -1,248 +1,357 @@
-//
-// Created by Monster on 2023/6/25.
-//
+/**
+ * @file soft_timer.c
+ * @author monster
+ * @date 2024/4/3
+ */
 
+/*********************
+ *      INCLUDES
+ *********************/
 #include "soft_timer.h"
 #include "string.h"
-#include "stdlib.h"
 
-SoftTimerGetTime_t stGetTime;
 
-#if !SOFT_TIMER_DYNAMIC_EN
-SoftTimerDef_t SoftTimer[SOFT_TIMER_MAX_NUM];
+/*********************
+ *      DEFINES
+ *********************/
+#define IDLE_MEAS_PERIOD 500 /*[ms]*/
+
+/**********************
+ *      TYPEDEFS
+ **********************/
+
+ /**
+  * Descriptor of a soft_timer linked list
+  */
+typedef struct {
+    soft_timer_t* head;
+    soft_timer_t* tail;
+    uint32_t size;
+}soft_timer_ll_t;
+
+
+/**
+ * Descriptor of a soft_timer state
+ */
+typedef struct {
+    uint8_t created  : 1;
+    uint8_t deleted  : 1;
+    uint8_t auto_del : 1;
+
+    uint32_t next_call_time;    /*next timer exec callback time*/
+    uint32_t busy_time;         /*timer callback time*/
+    uint32_t idle_period_time;  /*last idle period time*/
+    uint32_t idle_pct;          /*timer idle time percentage*/
+}soft_timer_state_t;
+
+
+
+/**********************
+ *  STATIC VARIABLES
+ **********************/
+static soft_timer_ll_t soft_timer_ll;
+static soft_timer_state_t timer_state;
+
+
+
+/**********************
+ *  STATIC PROTOTYPES
+ **********************/
+static uint32_t tick_elaps(uint32_t prev_tick);
+static int32_t soft_timer_exec(soft_timer_t* timer);
+static uint32_t soft_timer_time_remaining(soft_timer_t* timer);
+
+
+/**********************
+ *      MACROS
+ **********************/
+#if SOFT_TIMER_LOG_EN
+#   define SOFT_TIMER_ASSERT(fmt, ...)  SOFT_TIMER_CUSTOM_LOG("[ST] " fmt "\r\n", ##__VA_ARGS__)
+#else
+#   define SOFT_TIMER_ASSERT(fmt, ...)
 #endif
 
-/**
- * \brief define timer list global variable
- */
-SimpleListDef(softimer)
-        List_t *stList = GetList(softimer);
-        ListMethod_t *stMethod = GetMethod(softimer);
+
+/**********************
+ *   GLOBAL FUNCTIONS
+ **********************/
 
 /**
- * \brief check the timer exists
- * \param id timer handle
- * \return index of the timer in the list,
- *          no timer return -1.
- */
-static int isExists(SoftTimerID id) {
-    int size = stMethod->size(stList);
+* @brief initialize soft timer, should be before using timer.
+*/
+int32_t soft_timer_init(void)
+{
+    soft_timer_ll.head = NULL;
+    soft_timer_ll.head = NULL;
+    soft_timer_ll.size = 0;
+    
+    memset(&timer_state, 0, sizeof(soft_timer_state_t));
 
-    for (int i = 0; i < size; i++) {
-        SoftTimerID pItem = (SoftTimerID) stMethod->get(stList, i);
-        if (pItem == id) {
-            return i;
+#if SOFT_TIMER_COMPLET_DEL
+    timer_state.auto_del = SOFT_TIMER_COMPLET_DEL;
+#endif
+
+    return 0;
+}
+
+uint32_t soft_timer_handler(void)
+{
+    //SOFT_TIMER_ASSERT("begin");
+
+    uint32_t tick_start = SOFT_TIMER_CUSTOM_GET_TICK;
+
+    /*Check 'tick' is available*/
+    if (tick_start == 0) {
+        static uint32_t run_cnt = 0;
+        run_cnt = (run_cnt + 1) % 100;
+        if (run_cnt == 0) {
+            SOFT_TIMER_ASSERT("It seems 'SOFT_TIMER_CUSTOM_GET_TICK' is not available.");
         }
     }
 
-    return -1;
-}
-
-static SoftTimerID getTimer(const char *name) {
-    int size = stMethod->size(stList);
-
-    for (int i = 0; i < size; i++) {
-        SoftTimerDef_t *pItem = (SoftTimerDef_t *) stMethod->get(stList, i);
-        if (strcmp(pItem->name, name) == 0) {
-            return pItem;
-        }
-    }
-
-    return NULL;
-}
-
-/**
- * \brief initialize soft timer, should be before using timer.
- * \param get_time get timestamp function pointer
- */
-void sTimerInitialize(SoftTimerGetTime_t get_time) {
-    SimpleListInit(softimer)
-    stGetTime = get_time;
-}
-
-/**
- * \brief create timer
- * \param name timer name
- * \param period timer time period
- * \param callback timeout callback function pointer.
- * \param data callback function params pointer.
- * \param mode timer run mode used "OnceMode" or "CirculateMode".
- * \return the timer handle
- */
-SoftTimerID sTimerCreate(const char *name, uint32_t period, void(*callback)(SoftTimerID id, void *data),
-                         void *data, stMode_t mode) {
-
-    if (name == NULL) {
-        return NULL;
-    }
-
-    if (callback == NULL || getTimer((char *) name)) {
-        return NULL;
-    }
-
-    SoftTimerDef_t *timer = NULL;
-
-#if SOFT_TIMER_DYNAMIC_EN
-    timer = (SoftTimerDef_t *) malloc(sizeof(SoftTimerDef_t));
-    if (timer == NULL) {
-        return NULL;
-    }
-#else
-    for (int i = 0; i < SOFT_TIMER_MAX_NUM; i++) {
-        if (SoftTimer[i].name == NULL) {
-            timer = &SoftTimer[i];
+    timer_state.created = false;
+    timer_state.deleted = false;
+    /*Run all timer form the linked list*/
+    soft_timer_t* active = soft_timer_ll.head;
+    
+    while (active) {
+        soft_timer_exec(active);
+        if (timer_state.created || timer_state.deleted) {
+            SOFT_TIMER_ASSERT("timer was created or deleted");
             break;
         }
-    }
+        active = active->next;
+    } ;
 
-    /* timer create upper limit */
-    if (timer == NULL) {
-        return NULL;
-    }
-#endif
-    memset(timer, 0, sizeof(SoftTimerDef_t));
-
-    timer->name      = (char *) name;
-    timer->time      = stGetTime();
-    timer->period    = period;
-    timer->mode      = mode;
-    timer->isStarted = false;
-    timer->callback  = callback;
-    timer->data      = data;
-
-    if (!stMethod->add(stList, timer)) {
-#if SOFT_TIMER_DYNAMIC_EN
-        free(timer);
-#endif
-        return NULL;
-    }
-
-    return timer;
-}
-
-bool sTimerStart(const char *name) {
-    if (name == NULL) {
-        return false;
-    }
-
-    SoftTimerID id = getTimer(name);
-
-    return stStart(id);
-}
-
-bool stStart(SoftTimerID id) {
-    if (!id) {
-        return false;
-    }
-
-    SoftTimerDef_t *timer = (SoftTimerDef_t *) id;
-
-    timer->time      = stGetTime();
-    timer->isStarted = true;
-
-    return true;
-}
-
-void stStop(SoftTimerID id) {
-    if (!id) {
-        return;
-    }
-    SoftTimerDef_t *timer = (SoftTimerDef_t *) id;
-    timer->isStarted = false;
-}
-
-bool sTimerIsRun(const char *name) {
-    SoftTimerID id = getTimer((char *) name);
-    if (!id) {
-        return false;
-    }
-
-    SoftTimerDef_t *timer = (SoftTimerDef_t *) id;
-    return timer->isStarted;
-}
-
-void sTimerRemove(SoftTimerID id) {
-    int index = isExists(id);
-    if (index == -1) {
-        return;
-    }
-
-    // remove list none
-    SoftTimerDef_t *remove_timer = (SoftTimerDef_t *) stMethod->remove(stList, index);
-
-#if SOFT_TIMER_DYNAMIC_EN
-    // free the timer memory
-    free(remove_timer);
-#else
-    // clear array
-    memset(remove_timer, 0, sizeof(SoftTimerDef_t));
-#endif
-}
-
-/**
- * \brief Gets the minimum remaining timeout time in the timer.
- * \return remain timeout.
- */
-uint32_t sTimerFreeTime() {
-    int size = stMethod->size(stList);
-    if (size <= 0) {
-        return 0;
-    }
-
-    uint32_t       nowTime  = stGetTime();
-    uint32_t       freeTime = UINT32_MAX;
-    SoftTimerDef_t *timer;
-
-    for (int i = 0; i < size; i++) {
-        timer = (SoftTimerDef_t *) stMethod->get(stList, i);
-        if (!timer)
-            continue;
-
-        if (!timer->isStarted)
-            continue;
-
-        uint32_t time = timer->time + timer->period - nowTime;
-        if (time < freeTime)
-            freeTime = time;
-    }
-
-    return freeTime == UINT32_MAX ? 0 : freeTime;
-}
-
-/**
- * \brief Universal timer processing.
- * He should be called in a loop,
- */
-void sTimerProcess(void) {
-    uint32_t time = stGetTime();
-
-    int size = stMethod->size(stList);
-    if (size <= 0) {
-        return;
-    }
-
-    SoftTimerDef_t *pItem;
-
-    for (int i = 0; i < size; i++) {
-        pItem = (SoftTimerDef_t *) stMethod->get(stList, i);
-        if (!pItem)
-            continue;
-
-        if (!pItem->isStarted)
-            continue;
-
-        /* goto user callback function */
-        if (time - pItem->time > pItem->period) {
-            pItem->time = time;
-            pItem->callback(pItem, pItem->data);
-
-            /* remove once mode timer */
-            if (pItem->mode == OnceMode) {
-                sTimerRemove(pItem);
-            }
+    /*Get next timer callback remaining time*/
+    active = soft_timer_ll.head;
+    uint32_t next_call_time = UINT32_MAX;
+    uint32_t time_remain = 0;
+    while (active) {
+        if (!active->paused) {
+            time_remain = soft_timer_time_remaining(active);
+            if(time_remain < next_call_time ) next_call_time = time_remain;
         }
 
+        active = active->next;
+    }
+    timer_state.next_call_time = next_call_time;
+
+    /*Get idle time PCT*/
+    timer_state.busy_time += tick_elaps(tick_start);
+    uint32_t idle_time = tick_elaps(timer_state.idle_period_time);
+    if (idle_time >= IDLE_MEAS_PERIOD) {
+        /*Calculate the busy percentage*/
+        timer_state.idle_pct         = (timer_state.busy_time * 100) / idle_time;
+        timer_state.idle_pct         = timer_state.idle_pct > 100 ? 0 : 
+                                       (timer_state.idle_pct == 100 ? 100 : 100 - timer_state.idle_pct);
+        timer_state.busy_time        = 0;
+        timer_state.idle_period_time = SOFT_TIMER_CUSTOM_GET_TICK;
     }
 
+    //SOFT_TIMER_ASSERT("finished (next timer call after %u ms)", next_call_time);
+
+    return next_call_time;
+}
+
+
+/**
+ * Create a new lv_timer
+ * @param period call period in ms unit
+ * @param timer_xcb a callback to call periodically.
+ *                 (the 'x' in the argument name indicates that it's not a fully generic function because it not follows
+ *                  the `func_name(object, callback, ...)` convention)
+ * @param user_data custom parameter
+ * @return pointer to the new timer
+ */
+soft_timer_t* soft_timer_create(uint32_t period, soft_timer_cb_t timer_xcb, void* user_data)
+{
+    soft_timer_t* new_timer = NULL;
+
+#if SOFT_TIMER_CUSTOM_COUNT
+    if (soft_timer_ll.size >= SOFT_TIMER_CUSTOM_COUNT) {
+        SOFT_TIMER_ASSERT("Timer created the upper limit.");
+        return NULL;
+    }
+#endif
+
+    new_timer = SOFT_TIMER_CUSTOM_MALLOC(sizeof(soft_timer_t));
+    if (new_timer == NULL) return NULL;
+
+    timer_state.created = true;
+
+    new_timer->period = period;
+    new_timer->timer_cb = timer_xcb;
+    new_timer->user_data = user_data;
+    new_timer->repeat_count = -1;
+    new_timer->paused = 0;
+    new_timer->last_run = SOFT_TIMER_CUSTOM_GET_TICK;
+    new_timer->last = soft_timer_ll.tail;
+    new_timer->next = NULL;
+
+    /*If there is old tail then later it goes the new*/
+    if (soft_timer_ll.tail != NULL) {
+        soft_timer_ll.tail->next = new_timer;
+    }
+
+    /*If there is no head (1. node) set the head too*/
+    if (soft_timer_ll.head == NULL) {
+        soft_timer_ll.head = new_timer;
+    }
+
+    /*Set the new tail in the linked list.*/
+    soft_timer_ll.tail = new_timer;
+    soft_timer_ll.size += 1;
+
+    return new_timer;
+}
+
+/**
+ * Delete a sotf_timer
+ * @param timer pointer to an soft_timer
+ */
+void soft_timer_del(soft_timer_t* timer)
+{
+    if (timer == NULL) return;
+
+    timer_state.deleted = true;
+
+    if (soft_timer_ll.head == timer) {
+        /*The new head will be the node after 'timer'*/
+        soft_timer_ll.head = timer->next;
+        if (soft_timer_ll.head == NULL) {
+            soft_timer_ll.tail = NULL;
+        }
+        else {
+            soft_timer_ll.head->last = NULL;
+        }
+    }
+    else if (soft_timer_ll.tail == timer) {
+        /*The new tail will be the node before 'timer'*/
+        soft_timer_ll.tail = timer->last;
+        if (soft_timer_ll.tail == NULL) {
+            soft_timer_ll.head = NULL;
+        }
+        else {
+            soft_timer_ll.tail->next = NULL;
+        }
+    }
+    else {
+        soft_timer_t* last = timer->last;
+        soft_timer_t* next = timer->next;
+
+        last->next = next;
+        next->last = last;
+    }
+
+    soft_timer_ll.size += (soft_timer_ll.size > 0) ? -1 : 0;
+    SOFT_TIMER_CUSTOM_FREE(timer);
+}
+
+
+/**
+ * Pause/Resume a timer.
+ * @param timer pointer to an soft_timer
+ */
+void soft_timer_pause(soft_timer_t* timer)
+{
+    timer->paused = true;
+}
+
+void soft_timer_resume(soft_timer_t* timer)
+{
+    timer->paused = false;
+}
+
+void soft_timer_ready(soft_timer_t* timer)
+{
+    timer->last_run = SOFT_TIMER_CUSTOM_GET_TICK - timer->period - 1;
+}
+
+void soft_timer_reset(soft_timer_t* timer)
+{
+    timer->last_run = SOFT_TIMER_CUSTOM_GET_TICK;
+}
+
+void soft_timer_set_period(soft_timer_t* timer, uint32_t period)
+{
+    timer->period = period;
+}
+
+void soft_timer_set_cb(soft_timer_t* timer, soft_timer_cb_t timer_xcb)
+{
+    timer->timer_cb = timer_xcb;
+}
+
+void soft_timer_set_repeat_count(soft_timer_t* timer, int32_t repeat_count)
+{
+    timer->repeat_count = repeat_count;
+}
+
+uint32_t soft_timer_get_idle_ptc(void)
+{
+    return timer_state.idle_pct;
+}
+
+
+/**
+ * Get the elapsed milliseconds since a previous time stamp
+ * @param prev_tick a previous time stamp (return value of lv_tick_get() )
+ * @return the elapsed milliseconds since 'prev_tick'
+ */
+static uint32_t tick_elaps(uint32_t prev_tick) {
+    uint32_t act_time = SOFT_TIMER_CUSTOM_GET_TICK;
+
+    if (act_time < prev_tick) {
+        return (UINT32_MAX - prev_tick + 1) + act_time;
+    }
+    
+    return act_time - prev_tick;
+}
+
+
+static int32_t soft_timer_exec(soft_timer_t* timer) {
+    if (!timer) return 1;
+
+    /*timer running check*/
+    if (timer->paused) return 1;
+
+    if (soft_timer_time_remaining(timer) == 0) {
+        int32_t original_repeat_count = timer->repeat_count;
+
+        timer->repeat_count += (timer->repeat_count > 0) ? -1 : 0;
+        timer->last_run = SOFT_TIMER_CUSTOM_GET_TICK;
+        SOFT_TIMER_ASSERT("calling timer callback: %p", *((void**)&timer->timer_cb));
+        if (timer->timer_cb && original_repeat_count != 0) timer->timer_cb(timer);
+        SOFT_TIMER_ASSERT("timer callback: %p finished", *((void**)&timer->timer_cb));
+    }
+
+    if (timer->repeat_count == 0) {
+        if (timer_state.auto_del) {
+            SOFT_TIMER_ASSERT("deleting timer with %p", *((void**)&timer->timer_cb));
+            soft_timer_del(timer);
+        }
+        else {
+            SOFT_TIMER_ASSERT("pausing timer with %p", *((void**)&timer->timer_cb));
+            soft_timer_pause(timer);
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Find out how much time remains before a timer must be run.
+ * @param timer pointer to soft_timer
+ * @return the time remaining, or 0 if it needs to be run again
+ */
+static uint32_t soft_timer_time_remaining(soft_timer_t* timer)
+{
+
+    uint32_t elaps = tick_elaps(timer->last_run);
+    if (elaps >= timer->period)
+        return 0;
+
+    return timer->period - elaps;
 }
 
